@@ -6,7 +6,7 @@ module ActiveMerchant #:nodoc:
       include Empty
 
       self.test_url = 'https://apitest.authorize.net/xml/v1/request.api'
-      self.live_url = 'https://api.authorize.net/xml/v1/request.api'
+      self.live_url = 'https://api2.authorize.net/xml/v1/request.api'
 
       self.supported_countries = %w(AD AT AU BE BG CA CH CY CZ DE DK ES FI FR GB GB GI GR HU IE IT LI LU MC MT NL NO PL PT RO SE SI SK SM TR US VA)
       self.default_currency = 'USD'
@@ -32,12 +32,27 @@ module ActiveMerchant #:nodoc:
         '23' => STANDARD_ERROR_CODE[:card_declined],
         '3153' => STANDARD_ERROR_CODE[:processing_error],
         '235' => STANDARD_ERROR_CODE[:processing_error],
-        '24' => STANDARD_ERROR_CODE[:pickup_card]
+        '24' => STANDARD_ERROR_CODE[:pickup_card],
+        '300' => STANDARD_ERROR_CODE[:config_error],
+        '384' => STANDARD_ERROR_CODE[:config_error]
       }
 
       MARKET_TYPE = {
         :moto  => '1',
         :retail  => '2'
+      }
+
+      DEVICE_TYPE = {
+        :unknown => '1',
+        :unattended_terminal => '2',
+        :self_service_terminal => '3',
+        :electronic_cash_register => '4',
+        :personal_computer_terminal => '5',
+        :airpay => '6',
+        :wireless_pos => '7',
+        :website => '8',
+        :dial_terminal => '9',
+        :virtual_terminal => '10'
       }
 
       class_attribute :duplicate_window
@@ -55,6 +70,8 @@ module ActiveMerchant #:nodoc:
       }.freeze
 
       APPLE_PAY_DATA_DESCRIPTOR = "COMMON.APPLE.INAPP.PAYMENT"
+
+      PAYMENT_METHOD_NOT_SUPPORTED_ERROR = "155"
 
       def initialize(options={})
         requires!(options, :login, :password)
@@ -165,8 +182,34 @@ module ActiveMerchant #:nodoc:
 
       def scrub(transcript)
         transcript.
+          gsub(%r((Authorization: Basic )\w+), '\1[FILTERED]').
+          gsub(%r((<transactionKey>).+(</transactionKey>)), '\1[FILTERED]\2').
           gsub(%r((<cardNumber>).+(</cardNumber>)), '\1[FILTERED]\2').
-          gsub(%r((<cardCode>).+(</cardCode>)), '\1[FILTERED]\2')
+          gsub(%r((<cardCode>).+(</cardCode>)), '\1[FILTERED]\2').
+          gsub(%r((<track1>).+(</track1>)), '\1[FILTERED]\2').
+          gsub(%r((<track2>).+(</track2>)), '\1[FILTERED]\2').
+          gsub(/(<routingNumber>).+(<\/routingNumber>)/, '\1[FILTERED]\2').
+          gsub(/(<accountNumber>).+(<\/accountNumber>)/, '\1[FILTERED]\2').
+          gsub(%r((<cryptogram>).+(</cryptogram>)), '\1[FILTERED]\2')
+      end
+
+      def supports_network_tokenization?
+        card = Billing::NetworkTokenizationCreditCard.new({
+          :number => "4111111111111111",
+          :month => 12,
+          :year => 20,
+          :first_name => 'John',
+          :last_name => 'Smith',
+          :brand => 'visa',
+          :payment_cryptogram => 'EHuWW9PiBkWvqE5juRwDzAUFBAk='
+        })
+
+        request = post_data(:authorize) do |xml|
+          add_auth_purchase(xml, "authOnlyTransaction", 1, card, {})
+        end
+        raw_response = ssl_post(url, request, headers)
+        response = parse(:authorize, raw_response)
+        response[:response_reason_code].to_s != PAYMENT_METHOD_NOT_SUPPORTED_ERROR
       end
 
       private
@@ -179,7 +222,7 @@ module ActiveMerchant #:nodoc:
           add_payment_source(xml, payment)
           add_invoice(xml, options)
           add_customer_data(xml, payment, options)
-          add_market_type(xml, payment)
+          add_market_type_device_type(xml, payment, options)
           add_settings(xml, payment, options)
           add_user_fields(xml, amount, options)
         end
@@ -276,7 +319,6 @@ module ActiveMerchant #:nodoc:
           xml.transactionRequest do
             xml.transactionType('voidTransaction')
             xml.refTransId(transaction_id_from(authorization))
-            add_user_fields(xml, nil, options)
           end
         end
       end
@@ -300,6 +342,12 @@ module ActiveMerchant #:nodoc:
             xml.setting do
               xml.settingName("recurringBilling")
               xml.settingValue("true")
+            end
+          end
+          if options[:disable_partial_auth]
+            xml.setting do
+              xml.settingName("allowPartialAuth")
+              xml.settingValue("false")
             end
           end
           if options[:duplicate_window]
@@ -382,15 +430,22 @@ module ActiveMerchant #:nodoc:
         end
       end
 
-      def add_market_type(xml, payment)
+      def add_market_type_device_type(xml, payment, options)
         return if payment.is_a?(String) || card_brand(payment) == 'check' || card_brand(payment) == 'apple_pay'
         if valid_track_data
           xml.retail do
-            xml.marketType(MARKET_TYPE[:retail])
+            xml.marketType(options[:market_type] || MARKET_TYPE[:retail])
+            xml.deviceType(options[:device_type] || DEVICE_TYPE[:wireless_pos])
           end
         elsif payment.manual_entry
           xml.retail do
-            xml.marketType(MARKET_TYPE[:moto])
+            xml.marketType(options[:market_type] || MARKET_TYPE[:moto])
+          end
+        else
+          if options[:market_type]
+            xml.retail do
+              xml.marketType(options[:market_type])
+            end
           end
         end
       end
@@ -490,13 +545,6 @@ module ActiveMerchant #:nodoc:
         else
           [options[:first_name], options[:last_name]]
         end
-      end
-
-      def split_names(full_name)
-        names = (full_name || "").split
-        last_name = names.pop
-        first_name = names.join(" ")
-        [first_name, last_name]
       end
 
       def headers
