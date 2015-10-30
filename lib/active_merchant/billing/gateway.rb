@@ -48,7 +48,7 @@ module ActiveMerchant #:nodoc:
     # * <tt>:zip</tt> - The zip or postal code of the customer.
     # * <tt>:phone</tt> - The phone number of the customer.
     #
-    # == Implmenting new gateways
+    # == Implementing new gateways
     #
     # See the {ActiveMerchant Guide to Contributing}[https://github.com/activemerchant/active_merchant/wiki/Contributing]
     #
@@ -72,6 +72,7 @@ module ActiveMerchant #:nodoc:
       # :incorrect_cvc - Secerity code was not matched by the processor
       # :incorrect_zip - Zip code is not in correct format
       # :incorrect_address - Billing address info was not matched by the processor
+      # :incorrect_pin - Card PIN is incorrect
       # :card_declined - Card number declined by processor
       # :processing_error - Processor error
       # :call_issuer - Transaction requires voice authentication, call issuer
@@ -86,10 +87,12 @@ module ActiveMerchant #:nodoc:
         :incorrect_cvc => 'incorrect_cvc',
         :incorrect_zip => 'incorrect_zip',
         :incorrect_address => 'incorrect_address',
+        :incorrect_pin => 'incorrect_pin',
         :card_declined => 'card_declined',
         :processing_error => 'processing_error',
         :call_issuer => 'call_issuer',
-        :pickup_card => 'pick_up_card'
+        :pickup_card => 'pick_up_card',
+        :config_error => 'config_error'
       }
 
       cattr_reader :implementations
@@ -190,6 +193,10 @@ module ActiveMerchant #:nodoc:
         raise RuntimeError.new("This gateway does not support scrubbing.")
       end
 
+      def supports_network_tokenization?
+        false
+      end
+
       protected # :nodoc: all
 
       def normalize(field)
@@ -267,6 +274,15 @@ module ActiveMerchant #:nodoc:
       def truncate(value, max_size)
         return nil unless value
         value.to_s[0, max_size]
+      end
+
+      def split_names(full_name)
+        names = (full_name || "").split
+        return [nil, nil] if names.size == 0
+
+        last_name  = names.pop
+        first_name = names.join(" ")
+        [first_name, last_name]
       end
 
       def requires_start_date_or_issue_number?(credit_card)

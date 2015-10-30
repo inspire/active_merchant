@@ -245,6 +245,10 @@ module ActiveMerchant #:nodoc:
           gsub(%r((<authenticationData>)[^<]*(</authenticationData>))i, '\1[FILTERED]\2')
       end
 
+      def supports_network_tokenization?
+        true
+      end
+
       private
 
       # Create all address hash key value pairs so that we still function if we
@@ -456,6 +460,7 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'companyTaxID',          address[:companyTaxID]            unless address[:company_tax_id].blank?
           xml.tag! 'phoneNumber',           address[:phone]                   unless address[:phone].blank?
           xml.tag! 'email',                 options[:email]
+          xml.tag! 'ipAddress',             options[:ip]                      unless options[:ip].blank? || shipTo
           xml.tag! 'driversLicenseNumber',  options[:drivers_license_number]  unless options[:drivers_license_number].blank?
           xml.tag! 'driversLicenseState',   options[:drivers_license_state]   unless options[:drivers_license_state].blank?
         end
