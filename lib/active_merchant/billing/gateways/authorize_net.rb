@@ -6,7 +6,7 @@ module ActiveMerchant #:nodoc:
       include Empty
 
       self.test_url = 'https://apitest.authorize.net/xml/v1/request.api'
-      self.live_url = 'https://api2.authorize.net/xml/v1/request.api'
+      self.live_url = 'https://api.authorize.net/xml/v1/request.api'
 
       self.supported_countries = %w(AD AT AU BE BG CA CH CY CZ DE DK EE ES FI FR GB GB GI GR HU IE IS IT LI LT LU LV MC MT NL NO PL PT RO SE SI SK SM TR US VA)
       self.default_currency = 'USD'
