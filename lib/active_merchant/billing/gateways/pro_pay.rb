@@ -5,7 +5,6 @@ module ActiveMerchant #:nodoc:
     class ProPayGateway < Gateway
       self.test_url = 'https://xmltest.propay.com/API/PropayAPI.aspx'
       self.live_url = 'https://epay.propay.com/api/propayapi.aspx'
-
       self.supported_countries = ['US', 'CA']
       self.default_currency = 'USD'
       self.money_format = :cents
@@ -134,7 +133,6 @@ module ActiveMerchant #:nodoc:
       }
 
       def initialize(options={})
-        requires!(options, :cert_str)
         super
       end
 
@@ -239,7 +237,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_account(xml, options)
-        xml.accountNum options[:account_num]
+        xml.accountNum @options[:account_num]
       end
 
       def add_invoice(xml, money, options)
@@ -303,14 +301,15 @@ module ActiveMerchant #:nodoc:
       def build_xml_request
         builder = Nokogiri::XML::Builder.new do |xml|
           xml.XMLRequest do
-            xml.certStr @options[:cert_str]
+
+            xml.certStr (test? ? "29dc82efcc3456db610c8744d2af16" : "TBD")
             xml.class_ "partner"
             xml.XMLTrans do
               yield(xml)
             end
           end
         end
-
+        # binding.pry
         builder.to_xml
       end
     end
