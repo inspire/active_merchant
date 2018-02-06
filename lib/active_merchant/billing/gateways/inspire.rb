@@ -125,7 +125,7 @@ module ActiveMerchant #:nodoc:
       def add_swipe_data(post, creditcard, options)
         # unencrypted tracks
         if creditcard.respond_to?(:track_data) && creditcard.track_data.present?
-          post[:track_1] = creditcard.track_data
+          post[:track_1] = creditcard.track_data.split(";")[0]
         else
           post[:track_1] = options[:track_1]
           post[:track_2] = options[:track_2]
