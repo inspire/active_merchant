@@ -123,22 +123,23 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_swipe_data(post, creditcard, options)
-        # unencrypted tracks
         if creditcard.respond_to?(:track_data) && creditcard.track_data.present?
-          post[:track_1] = creditcard.track_data.split(";")[0]
-        else
-          post[:track_1] = options[:track_1]
-          post[:track_2] = options[:track_2]
-          post[:track_3] = options[:track_3]
-        end
+          track_1 = creditcard.track_data.split(";")[0]
+          track_2 = creditcard.track_data.split(";")[1]
+          track_3 = creditcard.track_data.split(";")[2]
 
-        # encrypted tracks
-        post[:magnesafe_track_1] = options[:magnesafe_track_1]
-        post[:magnesafe_track_2] = options[:magnesafe_track_2]
-        post[:magnesafe_track_3] = options[:magnesafe_track_3]
-        post[:magnesafe_magneprint] = options[:magnesafe_magneprint]
-        post[:magnesafe_ksn] = options[:magnesafe_ksn]
-        post[:magnesafe_magneprint_status] = options[:magnesafe_magneprint_status]
+          if track_1.present? && track_2.present? && track_3.present?
+              post[:track_1] = track_1
+              post[:track_2] = ";" + track_2
+              post[:track_3] = ";" + track_3
+            elsif track_1.present? && track_2.present? && track_3.blank?
+              post[:track_1] = track_1
+              post[:track_2] = ";" + track_2
+            elsif track_1.present? && track_2.blank? && track_3.blank?
+              post[:track_1] = track_1
+            else
+          end
+        end
       end
 
       def add_invoice(post, options)
