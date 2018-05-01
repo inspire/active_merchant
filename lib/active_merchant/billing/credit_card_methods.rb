@@ -4,7 +4,7 @@ module ActiveMerchant #:nodoc:
     module CreditCardMethods
       CARD_COMPANIES = {
         'visa'               => /^4\d{12}(\d{3})?(\d{3})?$/,
-        'master'             => /^(5[1-5]\d{4}|677189)\d{10}$/,
+        'master'             => /^(5[1-5]\d{4}|677189|222[1-9]\d{2}|22[3-9]\d{3}|2[3-6]\d{4}|27[01]\d{3}|2720\d{2})\d{10}$/,
         'discover'           => /^(6011|65\d{2}|64[4-9]\d)\d{12}|(62\d{14})$/,
         'american_express'   => /^3[47]\d{13}$/,
         'diners_club'        => /^3(0[0-5]|[68]\d)\d{11}$/,
@@ -14,8 +14,57 @@ module ActiveMerchant #:nodoc:
         'dankort'            => /^5019\d{12}$/,
         'maestro'            => /^(5[06-8]|6\d)\d{10,17}$/,
         'forbrugsforeningen' => /^600722\d{10}$/,
-        'laser'              => /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/
+        'laser'              => /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/,
+        'sodexo'             => /^(606071|603389|606070|606069|606068|600818)\d{8}$/,
+        'vr'                 => /^(627416|637036)\d{8}$/,
+        'colt'               => /^1\d{4,7}$/,
+        'msa'                => /^(?:(?!70888[5-9]\d{8}\d{5}|(7088)?81003[0-9]{5}\d{5}|(7088)?8100[0-1][0-9]{5}))(5\d{7}$|^700000\d{8}|^(7088)?8\d{14})$/,
+        'avcard'             => /(^601029|^A)(\d{7,9})$/,
+        'epiccard'           => /^(7088)?8100[0-1][0-9]{5}\d{5}|7824(61|70)\d{10}$/,
+        'aircard'            => /^789682\d{10}$/,
+        'shellaviation'      => /^700055\d{10}|7005591\d{9}|7055\d{12}|^(7088)?81003[0-9]{5}\d{5}$/,
+        'shellretail'        => /^7070\d{10}|7575\d{14}$/,
+        'avfuelretail'       => /^708407(70)\d{9}$/,
+        'avfuelpro'          => /^708407(80)\d{9}$/,
+        'avfuelcf'           => /^708407(90)\d{9}$/,
+        'uvair'              => /^708308\d{8}$/,
+        'msa_voyager'        => /^70888[5-9]\d{8}\d{5}$/
       }
+
+      VALIDATE_CARD_COMPANIES = [[
+        'visa',
+        'master',
+        'discover',
+        'american_express',
+        'diners_club',
+        'jcb',
+        'switch',
+        'solo',
+        'dankort',
+        'maestro',
+        'forbrugsforeningen',
+        'laser',
+        ]]
+
+      # http://www.barclaycard.co.uk/business/files/bin_rules.pdf
+      ELECTRON_RANGES = [
+        [400115],
+        (400837..400839),
+        (412921..412923),
+        [417935],
+        (419740..419741),
+        (419773..419775),
+        [424519],
+        (424962..424963),
+        [437860],
+        [444000],
+        [459472],
+        (484406..484411),
+        (484413..484414),
+        (484418..484418),
+        (484428..484455),
+        (491730..491759),
+      ]
 
       def self.included(base)
         base.extend(ClassMethods)
@@ -23,6 +72,10 @@ module ActiveMerchant #:nodoc:
 
       def valid_month?(month)
         (1..12).include?(month.to_i)
+      end
+
+      def credit_card?
+        true
       end
 
       def valid_expiry_year?(year)
@@ -58,6 +111,11 @@ module ActiveMerchant #:nodoc:
         (number.to_s =~ /^\d{1,2}$/)
       end
 
+      # Returns if the card matches known Electron BINs
+      def electron?
+        self.class.electron?(number)
+      end
+
       module ClassMethods
         # Returns true if it validates. Optionally, you can pass a card brand as an argument and
         # make sure it is of the correct brand.
@@ -68,6 +126,7 @@ module ActiveMerchant #:nodoc:
         def valid_number?(number)
           valid_test_mode_card_number?(number) ||
             valid_card_number_length?(number) &&
+            valid_card_number_characters?(number) &&
             valid_checksum?(number)
         end
 
@@ -78,6 +137,10 @@ module ActiveMerchant #:nodoc:
         # - http://www.barclaycardbusiness.co.uk/information_zone/processing/bin_rules.html
         def card_companies
           CARD_COMPANIES
+        end
+
+        def validate_card_companies
+          VALIDATE_CARD_COMPANIES
         end
 
         # Returns a string containing the brand of card from the list of known information below.
@@ -103,6 +166,17 @@ module ActiveMerchant #:nodoc:
           return 'maestro' if number =~ card_companies['maestro']
 
           return nil
+        end
+
+        def electron?(number)
+          return false unless [16, 19].include?(number.length)
+
+          # don't recalculate for each range
+          bank_identification_number = first_digits(number).to_i
+
+          ELECTRON_RANGES.any? do |range|
+            range.include?(bank_identification_number)
+          end
         end
 
         def type?(number)
@@ -136,6 +210,10 @@ module ActiveMerchant #:nodoc:
 
         def valid_card_number_length?(number) #:nodoc:
           number.to_s.length >= 12
+        end
+
+        def valid_card_number_characters?(number) #:nodoc:
+          !number.to_s.match(/\D/)
         end
 
         def valid_test_mode_card_number?(number) #:nodoc:
