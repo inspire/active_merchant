@@ -14,8 +14,37 @@ module ActiveMerchant #:nodoc:
         'dankort'            => /^5019\d{12}$/,
         'maestro'            => /^(5[06-8]|6\d)\d{10,17}$/,
         'forbrugsforeningen' => /^600722\d{10}$/,
-        'laser'              => /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/
+        'laser'              => /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/,
+        'sodexo'             => /^(606071|603389|606070|606069|606068|600818)\d{8}$/,
+        'vr'                 => /^(627416|637036)\d{8}$/,
+        'colt'               => /^1\d{4,7}$/,
+        'msa'                => /^(?:(?!70888[5-9]\d{8}\d{5}|(7088)?81003[0-9]{5}\d{5}|(7088)?8100[0-1][0-9]{5}))(5\d{7}$|^700000\d{8}|^(7088)?8\d{14})$/,
+        'avcard'             => /(^601029|^A)(\d{7,9})$/,
+        'epiccard'           => /^(7088)?8100[0-1][0-9]{5}\d{5}|7824(61|70)\d{10}$/,
+        'aircard'            => /^789682\d{10}$/,
+        'shellaviation'      => /^700055\d{10}|7005591\d{9}|7055\d{12}|^(7088)?81003[0-9]{5}\d{5}$/,
+        'shellretail'        => /^7070\d{10}|7575\d{14}$/,
+        'avfuelretail'       => /^708407(70)\d{9}$/,
+        'avfuelpro'          => /^708407(80)\d{9}$/,
+        'avfuelcf'           => /^708407(90)\d{9}$/,
+        'uvair'              => /^708308\d{8}$/,
+        'msa_voyager'        => /^70888[5-9]\d{8}\d{5}$/
       }
+
+      VALIDATE_CARD_COMPANIES = [[
+        'visa',
+        'master',
+        'discover',
+        'american_express',
+        'diners_club',
+        'jcb',
+        'switch',
+        'solo',
+        'dankort',
+        'maestro',
+        'forbrugsforeningen',
+        'laser',
+        ]]
 
       # http://www.barclaycard.co.uk/business/files/bin_rules.pdf
       ELECTRON_RANGES = [
@@ -108,6 +137,10 @@ module ActiveMerchant #:nodoc:
         # - http://www.barclaycardbusiness.co.uk/information_zone/processing/bin_rules.html
         def card_companies
           CARD_COMPANIES
+        end
+
+        def validate_card_companies
+          VALIDATE_CARD_COMPANIES
         end
 
         # Returns a string containing the brand of card from the list of known information below.
