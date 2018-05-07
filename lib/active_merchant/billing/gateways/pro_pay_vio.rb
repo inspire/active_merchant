@@ -302,7 +302,7 @@ module ActiveMerchant #:nodoc:
         builder = Nokogiri::XML::Builder.new do |xml|
           xml.XMLRequest do
 
-            xml.certStr (test? ? "29dc82efcc3456db610c8744d2af16" : "TBD")
+            xml.certStr (test? ? "29dc82efcc3456db610c8744d2af16" : "478bf48d3474abbbc9ebb6d176f3ae")
             xml.class_ "partner"
             xml.XMLTrans do
               yield(xml)
