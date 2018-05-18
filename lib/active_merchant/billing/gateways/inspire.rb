@@ -103,9 +103,35 @@ module ActiveMerchant #:nodoc:
         if options.has_key? :email
           post[:email] = options[:email]
         end
-
         if options.has_key? :ip
           post[:ipaddress] = options[:ip]
+        end
+        if options.has_key? :shipping
+          post[:shipping] = options[:shipping]
+        end
+        if options.has_key? :tax
+          post[:tax] = options[:tax]
+        end
+        if options.has_key? :ponumber
+          post[:ponumber] = options[:ponumber]
+        end
+        if options.has_key? :duty_amount
+          post[:duty_amount] = options[:duty_amount]
+        end
+        if options.has_key? :discount_amount
+          post[:discount_amount] = options[:discount_amount]
+        end
+        if options.has_key? :shipping_postal
+          post[:shipping_postal] = options[:shipping_postal]
+        end
+        if options.has_key? :ship_from_postal
+          post[:ship_from_postal] = options[:ship_from_postal]
+        end
+        if options.has_key? :shipping_country
+          post[:shipping_country] = options[:shipping_country]
+        end
+        if options.has_key? :order_date
+          post[:order_date] = options[:order_date]
         end
       end
 
