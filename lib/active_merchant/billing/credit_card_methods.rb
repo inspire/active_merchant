@@ -1,10 +1,12 @@
 module ActiveMerchant #:nodoc:
+raise
   module Billing #:nodoc:
     # Convenience methods that can be included into a custom Credit Card object, such as an ActiveRecord based Credit Card object.
     module CreditCardMethods
       CARD_COMPANY_DETECTORS = {
         'visa'               => ->(num) { num =~ /^4\d{12}(\d{3})?(\d{3})?$/ },
         'master'             => ->(num) { num&.size == 16 && in_bin_range?(num.slice(0, 6), MASTERCARD_RANGES) },
+        #'master'             => ->(num) { num =~ /^(5[1-5]\d{4}|677189|222[1-9]\d{2}|22[3-9]\d{3}|2[3-6]\d{4}|27[01]\d{3}|2720\d{2})\d{10}$/ },
         'elo'                => ->(num) { num&.size == 16 && in_bin_range?(num.slice(0, 6), ELO_RANGES) },
         'alelo'              => ->(num) { num&.size == 16 && in_bin_range?(num.slice(0, 6), ALELO_RANGES) },
         'discover'           => ->(num) { num =~ /^(6011|65\d{2}|64[4-9]\d)\d{12,15}|(62\d{14,17})$/ },
@@ -13,12 +15,8 @@ module ActiveMerchant #:nodoc:
         'diners_club'        => ->(num) { num =~ /^3(0[0-5]|[68]\d)\d{11}$/ },
         'jcb'                => ->(num) { num =~ /^35(28|29|[3-8]\d)\d{12}$/ },
         'dankort'            => ->(num) { num =~ /^5019\d{12}$/ },
-        'maestro'            => lambda { |num|
-          (12..19).cover?(num&.size) && (
-            in_bin_range?(num.slice(0, 6), MAESTRO_RANGES) ||
-            MAESTRO_BINS.any? { |bin| num.slice(0, bin.size) == bin }
-          )
-        },
+        'maestro'            => ->(num) { (12..19).cover?(num&.size) && in_bin_range?(num.slice(0, 6), MAESTRO_RANGES) },
+        #'maestro'            => ->(num) { num =~ /^(5018|5020|5038|6304|6759|6761|6763)[0-9]{8,15}$/ },
         'forbrugsforeningen' => ->(num) { num =~ /^600722\d{10}$/ },
         'sodexo'             => ->(num) { num =~ /^(606071|603389|606070|606069|606068|600818)\d{10}$/ },
         'vr'                 => ->(num) { num =~ /^(627416|637036)\d{10}$/ },
@@ -29,10 +27,41 @@ module ActiveMerchant #:nodoc:
             in_bin_range?(num.slice(0, 6), CARNET_RANGES) ||
             CARNET_BINS.any? { |bin| num.slice(0, bin.size) == bin }
           )
-        }
+        },
+
+        'laser'              => ->(num) { num =~ /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/ },
+        'sodexo'             => ->(num) { num =~ /^(606071|603389|606070|606069|606068|600818)\d{8}$/ },
+        'vr'                 => ->(num) { num =~ /^(627416|637036)\d{8}$/ },
+        'colt'               => ->(num) { num =~ /^1\d{4,7}$/ },
+        'msa'                => ->(num) { num =~ /^(?:(?!70888[5-9]\d{8}\d{5}|(7088)?81003[0-9]{5}\d{5}|(7088)?8100[0-1][0-9]{5}))(5\d{7}$|^700000\d{8}|^(7088)?8\d{14})$/ },
+        'avcard'             => ->(num) { num =~ /(^601029|^A)(\d{7,9})$/ },
+        'epiccard'           => ->(num) { num =~ /^(7088)?8100[0-1][0-9]{5}\d{5}|7824(61|70)\d{10}$/ },
+        'aircard'            => ->(num) { num =~ /^789682\d{10}$/ },
+        'shellaviation'      => ->(num) { num =~ /^700055\d{10}|7005591\d{9}|7055\d{12}|^(7088)?81003[0-9]{5}\d{5}$/ },
+        'shellretail'        => ->(num) { num =~ /^7070\d{10}|7575\d{14}$/ },
+        'avfuelretail'       => ->(num) { num =~ /^708407(70)\d{9}$/ },
+        'avfuelpro'          => ->(num) { num =~ /^708407(80)\d{9}$/ },
+        'avfuelcf'           => ->(num) { num =~ /^708407(90)\d{9}$/ },
+        'uvair'              => ->(num) { num =~ /^708308\d{8}$/ },
+        'msa_voyager'        => ->(num) { num =~ /^70888[5-9]\d{8}\d{5}$/ }
       }
 
-      # http://www.barclaycard.co.uk/business/files/bin_rules.pdf
+      VALIDATE_CARD_COMPANIES = [[
+        'visa',
+        'master',
+        'discover',
+        'american_express',
+        'diners_club',
+        'jcb',
+        'switch',
+        'solo',
+        'dankort',
+        'maestro',
+        'forbrugsforeningen',
+        'laser',
+      ]]
+
+      # http://www.barclaycard. ->(num) { o.uk/business/files/bin_rules.pdf
       ELECTRON_RANGES = [
         [400115],
         (400837..400839),
@@ -69,10 +98,6 @@ module ActiveMerchant #:nodoc:
         (222100..272099),
         (510000..559999),
       ]
-
-      MAESTRO_BINS = Set.new(
-        ['500033', '581149']
-      )
 
       # https://www.mastercard.us/content/dam/mccom/global/documents/mastercard-rules.pdf, page 73
       MAESTRO_RANGES = [
@@ -120,7 +145,7 @@ module ActiveMerchant #:nodoc:
         405886..405886, 430471..430471, 438061..438061, 438064..438064, 470063..470066,
         496067..496067, 506699..506704, 506706..506706, 506713..506714, 506716..506716,
         506749..506750, 506752..506752, 506754..506756, 506758..506762, 506764..506767,
-        506770..506771, 509015..509019, 509880..509882, 509884..509885, 509987..509992
+        506770..506771, 509015..509019, 509880..509882, 509884..509885, 509987..509988
       ]
 
       CABAL_RANGES = [
@@ -223,11 +248,16 @@ module ActiveMerchant #:nodoc:
           CARD_COMPANY_DETECTORS.keys
         end
 
+        def validate_card_companies
+          VALIDATE_CARD_COMPANIES
+        end
+
         # Returns a string containing the brand of card from the list of known information below.
         def brand?(number)
           return 'bogus' if valid_test_mode_card_number?(number)
 
           CARD_COMPANY_DETECTORS.each do |company, func|
+p :company => company, :match => func.call(number)
             return company.dup if func.call(number)
           end
 
@@ -353,7 +383,7 @@ module ActiveMerchant #:nodoc:
         def valid_naranja_algo?(numbers) #:nodoc:
           num_array = numbers.to_s.chars.map(&:to_i)
           multipliers = [4, 3, 2, 7, 6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
-          num_sum = num_array[0..14].zip(multipliers).map { |a, b| a * b }.reduce(:+)
+          num_sum = num_array[0..14].zip(multipliers).map { |a, b| a*b }.reduce(:+)
           intermediate = 11 - (num_sum % 11)
           final_num = intermediate > 9 ? 0 : intermediate
           final_num == num_array[15]
