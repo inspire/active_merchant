@@ -1,5 +1,4 @@
 module ActiveMerchant #:nodoc:
-raise
   module Billing #:nodoc:
     # Convenience methods that can be included into a custom Credit Card object, such as an ActiveRecord based Credit Card object.
     module CreditCardMethods
@@ -30,8 +29,8 @@ raise
         },
 
         'laser'              => ->(num) { num =~ /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/ },
-        'sodexo'             => ->(num) { num =~ /^(606071|603389|606070|606069|606068|600818)\d{8}$/ },
-        'vr'                 => ->(num) { num =~ /^(627416|637036)\d{8}$/ },
+        #'sodexo'             => ->(num) { num =~ /^(606071|603389|606070|606069|606068|600818)\d{8}$/ },
+        #'vr'                 => ->(num) { num =~ /^(627416|637036)\d{8}$/ },
         'colt'               => ->(num) { num =~ /^1\d{4,7}$/ },
         'msa'                => ->(num) { num =~ /^(?:(?!70888[5-9]\d{8}\d{5}|(7088)?81003[0-9]{5}\d{5}|(7088)?8100[0-1][0-9]{5}))(5\d{7}$|^700000\d{8}|^(7088)?8\d{14})$/ },
         'avcard'             => ->(num) { num =~ /(^601029|^A)(\d{7,9})$/ },
