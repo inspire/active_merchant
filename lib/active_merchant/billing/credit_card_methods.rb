@@ -256,7 +256,6 @@ module ActiveMerchant #:nodoc:
           return 'bogus' if valid_test_mode_card_number?(number)
 
           CARD_COMPANY_DETECTORS.each do |company, func|
-p :company => company, :match => func.call(number)
             return company.dup if func.call(number)
           end
 
