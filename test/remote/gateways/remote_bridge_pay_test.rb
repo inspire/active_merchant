@@ -8,6 +8,13 @@ class RemoteBridgePayTest < Test::Unit::TestCase
     @credit_card = credit_card('4005550000000019')
     @declined_card = credit_card('4000300011100000')
 
+    @check = check(
+      name: 'John Doe',
+      routing_number: '490000018',
+      account_number: '1234567890',
+      number: '1001'
+    )
+
     @options = {
       order_id: generate_unique_id,
       billing_address: address,
@@ -27,6 +34,12 @@ class RemoteBridgePayTest < Test::Unit::TestCase
     assert_equal 'Invalid Account Number', response.message
   end
 
+  def test_successful_purchase_with_echeck
+    response = @gateway.purchase(150, @check, @options)
+    assert_success response
+    assert_equal 'APPROVAL', response.message
+  end
+
   def test_successful_authorize_and_capture
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
@@ -44,7 +57,7 @@ class RemoteBridgePayTest < Test::Unit::TestCase
     auth = @gateway.authorize(@amount, @credit_card, @options)
     assert_success auth
 
-    assert capture = @gateway.capture(@amount-1, auth.authorization)
+    assert capture = @gateway.capture(@amount - 1, auth.authorization)
     assert_success capture
   end
 
@@ -65,7 +78,7 @@ class RemoteBridgePayTest < Test::Unit::TestCase
     purchase = @gateway.purchase(@amount, @credit_card, @options)
     assert_success purchase
 
-    assert refund = @gateway.refund(@amount-1, purchase.authorization)
+    assert refund = @gateway.refund(@amount - 1, purchase.authorization)
     assert_success refund
   end
 
@@ -90,10 +103,10 @@ class RemoteBridgePayTest < Test::Unit::TestCase
   def test_successful_verify
     assert response = @gateway.verify(@credit_card, @options)
     assert_success response
-    assert_equal "Approved", response.message
+    assert_equal 'Approved', response.message
 
-    assert_success response.responses.last, "The void should succeed"
-    assert_equal "Approved", response.responses.last.params["respmsg"]
+    assert_success response.responses.last, 'The void should succeed'
+    assert_equal 'Approved', response.responses.last.params['respmsg']
   end
 
   def test_unsuccessful_verify
@@ -109,5 +122,24 @@ class RemoteBridgePayTest < Test::Unit::TestCase
     )
     response = gateway.purchase(@amount, @credit_card, @options)
     assert_failure response
+  end
+
+  def test_successful_store_and_purchase
+    store = @gateway.store(@credit_card)
+    assert_success store
+
+    purchase = @gateway.purchase(@amount, store.authorization)
+    assert_success purchase
+  end
+
+  def test_transcript_scrubbing
+    transcript = capture_transcript(@gateway) do
+      @gateway.purchase(@amount, @credit_card, @options)
+    end
+    transcript = @gateway.scrub(transcript)
+
+    assert_scrubbed(@credit_card.number, transcript)
+    assert_scrubbed(@credit_card.verification_value, transcript)
+    assert_scrubbed(@gateway.options[:password], transcript)
   end
 end

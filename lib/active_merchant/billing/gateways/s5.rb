@@ -19,6 +19,7 @@ module ActiveMerchant #:nodoc:
         'capture'   => 'CC.CP',
         'refund'    => 'CC.RF',
         'void'      => 'CC.RV',
+        'store'     => 'CC.RG'
       }
 
       def initialize(options={})
@@ -28,6 +29,7 @@ module ActiveMerchant #:nodoc:
 
       def purchase(money, payment, options={})
         request = build_xml_request do |xml|
+          add_identification(xml, options)
           add_payment(xml, money, 'sale', options)
           add_account(xml, payment)
           add_customer(xml, payment, options)
@@ -39,7 +41,7 @@ module ActiveMerchant #:nodoc:
 
       def refund(money, authorization, options={})
         request = build_xml_request do |xml|
-          add_identification(xml, authorization)
+          add_identification(xml, options, authorization)
           add_payment(xml, money, 'refund', options)
         end
 
@@ -48,6 +50,7 @@ module ActiveMerchant #:nodoc:
 
       def authorize(money, payment, options={})
         request = build_xml_request do |xml|
+          add_identification(xml, options)
           add_payment(xml, money, 'authonly', options)
           add_account(xml, payment)
           add_customer(xml, payment, options)
@@ -59,7 +62,7 @@ module ActiveMerchant #:nodoc:
 
       def capture(money, authorization, options={})
         request = build_xml_request do |xml|
-          add_identification(xml, authorization)
+          add_identification(xml, options, authorization)
           add_payment(xml, money, 'capture', options)
         end
 
@@ -68,8 +71,19 @@ module ActiveMerchant #:nodoc:
 
       def void(authorization, options={})
         request = build_xml_request do |xml|
-          add_identification(xml, authorization)
+          add_identification(xml, options, authorization)
           add_payment(xml, nil, 'void', options)
+        end
+
+        commit(request)
+      end
+
+      def store(payment, options = {})
+        request = build_xml_request do |xml|
+          xml.Payment(code: SUPPORTED_TRANSACTIONS['store'])
+          add_account(xml, payment)
+          add_customer(xml, payment, options)
+          add_recurrence_mode(xml, options)
         end
 
         commit(request)
@@ -95,9 +109,10 @@ module ActiveMerchant #:nodoc:
 
       private
 
-      def add_identification(xml, authorization)
+      def add_identification(xml, options, authorization = nil)
         xml.Identification do
-          xml.ReferenceID authorization
+          xml.TransactionID options[:order_id] if options[:order_id]
+          xml.ReferenceID authorization if authorization
         end
       end
 
@@ -112,17 +127,23 @@ module ActiveMerchant #:nodoc:
         end
       end
 
-      def add_account(xml, creditcard)
-        xml.Account do
-          xml.Number        creditcard.number
-          xml.Holder        "#{creditcard.first_name} #{creditcard.last_name}"
-          xml.Brand         creditcard.brand
-          xml.Expiry(year: creditcard.year, month: creditcard.month)
-          xml.Verification  creditcard.verification_value
+      def add_account(xml, payment_method)
+        if !payment_method.respond_to?(:number)
+          xml.Account(registration: payment_method)
+        else
+          xml.Account do
+            xml.Number        payment_method.number
+            xml.Holder        "#{payment_method.first_name} #{payment_method.last_name}"
+            xml.Brand         payment_method.brand
+            xml.Expiry(year: payment_method.year, month: payment_method.month)
+            xml.Verification payment_method.verification_value
+          end
         end
       end
 
       def add_customer(xml, creditcard, options)
+        return unless creditcard.respond_to?(:number)
+
         address = options[:billing_address]
         xml.Customer do
           xml.Contact do
@@ -153,20 +174,20 @@ module ActiveMerchant #:nodoc:
 
       def add_recurrence_mode(xml, options)
         if options[:recurring] == true
-          xml.Recurrence(mode: "REPEATED")
+          xml.Recurrence(mode: 'REPEATED')
         else
-          xml.Recurrence(mode: "INITIAL")
+          xml.Recurrence(mode: 'INITIAL')
         end
       end
 
       def parse(body)
-        results  = {}
+        results = {}
         xml = Nokogiri::XML(body)
-        resp = xml.xpath("//Response/Transaction/Identification")
+        resp = xml.xpath('//Response/Transaction/Identification')
         resp.children.each do |element|
           results[element.name.downcase.to_sym] = element.text
         end
-        resp = xml.xpath("//Response/Transaction/Processing")
+        resp = xml.xpath('//Response/Transaction/Processing')
         resp.children.each do |element|
           results[element.name.downcase.to_sym] = element.text
         end

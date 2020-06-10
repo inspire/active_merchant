@@ -23,7 +23,7 @@ module ActiveMerchant
         add_payment(post, payment)
         add_customer_data(post, options)
 
-        commit("S", post)
+        commit('S', post)
       end
 
       def authorize(money, payment, options={})
@@ -34,7 +34,7 @@ module ActiveMerchant
         add_payment(post, payment)
         add_customer_data(post, options)
 
-        commit("A", post)
+        commit('A', post)
       end
 
       def capture(money, authorization, options={})
@@ -45,7 +45,7 @@ module ActiveMerchant
         add_authorization(post, authorization)
         add_pay_type(post)
 
-        commit("D", post)
+        commit('D', post)
       end
 
       def refund(money, authorization, options={})
@@ -56,7 +56,7 @@ module ActiveMerchant
         add_authorization(post, authorization)
         add_pay_type(post)
 
-        commit("R", post)
+        commit('R', post)
       end
 
       def void(authorization, options={})
@@ -66,7 +66,7 @@ module ActiveMerchant
         add_authorization(post, authorization)
         add_pay_type(post)
 
-        commit("U", post)
+        commit('U', post)
       end
 
       def verify(credit_card, options={})
@@ -100,12 +100,7 @@ module ActiveMerchant
       def add_billing_address(post, options)
         address = options[:billing_address] || {}
 
-        if address[:name]
-          names = address[:name].split
-          post[:bill_name2] = names.pop
-          post[:bill_name1] = names.join(" ")
-        end
-
+        post[:bill_name1], post[:bill_name2] = split_names(address[:name])
         post[:bill_street] = address[:address1] if address[:address1]
         post[:bill_city] = address[:city] if address[:city]
         post[:bill_state] = address[:state] if address[:state]
@@ -117,12 +112,7 @@ module ActiveMerchant
       def add_shipping_address(post, options)
         address = options[:shipping_address] || {}
 
-        if address[:name]
-          names = address[:name].split
-          post[:ship_name2] = names.pop
-          post[:ship_name1] = names.join(" ")
-        end
-
+        post[:ship_name1], post[:ship_name2] = split_names(address[:name])
         post[:ship_street] = address[:address1] if address[:address1]
         post[:ship_city] = address[:city] if address[:city]
         post[:ship_state] = address[:state] if address[:state]
@@ -153,7 +143,7 @@ module ActiveMerchant
       end
 
       def add_pay_type(post)
-        post[:pay_type] = "C"
+        post[:pay_type] = 'C'
       end
 
       def parse(body)
@@ -170,8 +160,8 @@ module ActiveMerchant
             message_from(response),
             response,
             authorization: authorization_from(response),
-            avs_result: AVSResult.new(code: response["avs_code"]),
-            cvv_result: CVVResult.new(response["cvv2_code"]),
+            avs_result: AVSResult.new(code: response['avs_code']),
+            cvv_result: CVVResult.new(response['cvv2_code']),
             test: test?
           )
         rescue ResponseError => e
@@ -180,27 +170,26 @@ module ActiveMerchant
       end
 
       def success_from(response)
-        response["status_code"] == "1" || response["status_code"] == "T"
+        response['status_code'] == '1' || response['status_code'] == 'T'
       end
 
       def message_from(response)
-        response["auth_msg"]
+        response['auth_msg']
       end
 
       def authorization_from(response)
-        response["trans_id"]
+        response['trans_id']
       end
 
       def post_data(parameters = {})
-        parameters.collect { |key, value| "#{key}=#{CGI.escape(value.to_s)}" }.join("&")
+        parameters.collect { |key, value| "#{key}=#{CGI.escape(value.to_s)}" }.join('&')
       end
 
       def headers
         {
-          "User-Agent" => "ActiveMerchantBindings/#{ActiveMerchant::VERSION}",
+          'User-Agent' => "ActiveMerchantBindings/#{ActiveMerchant::VERSION}",
         }
       end
     end
-
   end
 end

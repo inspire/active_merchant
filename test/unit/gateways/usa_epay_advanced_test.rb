@@ -1,4 +1,5 @@
 # encoding: utf-8
+
 require 'test_helper'
 require 'logger'
 
@@ -15,90 +16,90 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
     # UsaEpayAdvancedGateway.wiredump_device.sync = true
 
     @gateway = UsaEpayAdvancedGateway.new(
-                 :login => 'X',
-                 :password => 'Y',
-                 :software_id => 'Z'
-               )
+      login: 'X',
+      password: 'Y',
+      software_id: 'Z'
+    )
 
     @credit_card = ActiveMerchant::Billing::CreditCard.new(
-      :number => '4000100011112224',
-      :month => 12,
-      :year => 12,
-      :brand => 'visa',
-      :verification_value => '123',
-      :first_name => "Fred",
-      :last_name => "Flintstone"
+      number: '4000100011112224',
+      month: 12,
+      year: 12,
+      brand: 'visa',
+      verification_value: '123',
+      first_name: 'Fred',
+      last_name: 'Flintstone'
     )
 
     @check = ActiveMerchant::Billing::Check.new(
-      :account_number => '123456789012',
-      :routing_number => '123456789',
-      :account_type => 'checking',
-      :first_name => "Fred",
-      :last_name => "Flintstone"
+      account_number: '123456789012',
+      routing_number: '123456789',
+      account_type: 'checking',
+      first_name: 'Fred',
+      last_name: 'Flintstone'
     )
 
     payment_methods = [
       {
-        :name => "My Visa", # optional
-        :sort => 2, # optional
-        :method => @credit_card
+        name: 'My Visa', # optional
+        sort: 2, # optional
+        method: @credit_card
       },
       {
-        :name => "My Checking",
-        :method => @check
+        name: 'My Checking',
+        method: @check
       }
     ]
 
     payment_method = {
-      :name => "My new Visa", # optional
-      :method => @credit_card
+      name: 'My new Visa', # optional
+      method: @credit_card
     }
 
     @customer_options = {
-      :id => 1, # optional: merchant assigned id, usually db id
-      :notes =>  "Note about customer", # optional
-      :data => "Some Data", # optional
-      :url => "awesomesite.com", # optional
-      :payment_methods => payment_methods # optional
+      id: 1, # optional: merchant assigned id, usually db id
+      notes: 'Note about customer', # optional
+      data: 'Some Data', # optional
+      url: 'awesomesite.com', # optional
+      payment_methods: payment_methods # optional
     }
 
     @payment_options = {
-      :payment_method => payment_method
+      payment_method: payment_method
     }
 
     @transaction_options = {
-      :payment_method => @credit_card,
-      :recurring => {
-        :schedule => 'monthly',
-        :amount => 4000
+      payment_method: @credit_card,
+      recurring: {
+        schedule: 'monthly',
+        amount: 4000
       }
     }
 
     @standard_transaction_options = {
-      :method_id => 0,
-      :command => 'Sale',
-      :amount => 2000 #20.00
+      method_id: 0,
+      command: 'Sale',
+      amount: 2000 # 20.00
     }
 
     @get_payment_options = {
-      :method_id => 0
+      method_id: 0
     }
 
     @delete_customer_options = {
-      :customer_number => 299461
+      customer_number: 299461
     }
 
     @custom_options = {
-      :fields => ['Response.StatusCode', 'Response.Status']
+      fields: ['Response.StatusCode', 'Response.Status']
     }
 
     @options = {
-      :client_ip => '127.0.0.1',
-      :billing_address => address,
+      client_ip: '127.0.0.1',
+      billing_address: address,
 
-      :customer_number => 298741,
-      :reference_number => 9999
+      customer_number: 298741,
+      reference_number: 9999
     }
   end
 
@@ -199,6 +200,18 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
     assert_nil response.authorization
   end
 
+  def test_successful_quick_update_customer
+    @gateway.expects(:ssl_post).returns(successful_customer_response('quickUpdateCustomer'))
+
+    assert response = @gateway.quick_update_customer({customer_number: @options[:customer_number], update_data: @customer_options})
+    assert_instance_of Response, response
+    assert response.test?
+    assert_success response
+    assert_equal 'true', response.params['quick_update_customer_return']
+    assert_equal 'true', response.message
+    assert_nil response.authorization
+  end
+
   def test_successful_enable_customer
     @options.merge!(@standard_transaction_options)
     @gateway.expects(:ssl_post).returns(successful_customer_response('enableCustomer'))
@@ -266,7 +279,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
   def test_successful_get_customer_payment_methods
     @gateway.expects(:ssl_post).returns(successful_get_customer_payment_methods_response)
 
-    assert response = @gateway.get_customer_payment_methods(@options.merge!(:customer_number => 298741))
+    assert response = @gateway.get_customer_payment_methods(@options.merge!(customer_number: 298741))
     assert_instance_of Response, response
     assert_success response
     assert response.test?
@@ -277,7 +290,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
   end
 
   def test_successful_update_customer_payment_method
-    @options.merge!(@payment_options).merge!(:method_id => 1)
+    @options.merge!(@payment_options)[:method_id] = 1
     @gateway.expects(:ssl_post).returns(successful_update_customer_payment_method_response)
 
     assert response = @gateway.update_customer_payment_method(@options)
@@ -292,7 +305,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
   def test_successful_delete_customer_payment_method
     @gateway.expects(:ssl_post).returns(successful_delete_customer_payment_method_response)
 
-    assert response = @gateway.delete_customer_payment_method(@options.merge!(:customer_number => 298741, :method_id => 15))
+    assert response = @gateway.delete_customer_payment_method(@options.merge!(customer_number: 298741, method_id: 15))
     assert_instance_of Response, response
     assert_success response
     assert_equal 'true', response.message
@@ -383,7 +396,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
     @options.merge!(@transaction_options)
 
     response = stub_comms do
-      @gateway.run_check_sale(@options.merge(:payment_method => @check))
+      @gateway.run_check_sale(@options.merge(payment_method: @check))
     end.check_request do |endpoint, data, headers|
       assert_match(/123456789012/, data)
     end.respond_with(successful_transaction_response('runCheckSale'))
@@ -408,7 +421,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
   end
 
   # TODO get post_auth response
-  #def test_successful_post_auth
+  # def test_successful_post_auth
   #  @options.merge!(:authorization_code => 'bogus')
   #  @gateway.expects(:ssl_post).returns(successful_post_auth_response)
 
@@ -420,7 +433,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
   #  #assert_equal '47568732', response.authorization
 
   #  puts response.inspect
-  #end
+  # end
 
   def test_successful_run_quick_sale
     @options.merge!(@transaction_options)
@@ -482,7 +495,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
   end
 
   # TODO get override_transaction response
-  #def test_successful_override_transaction
+  # def test_successful_override_transaction
   #  @gateway.expects(:ssl_post).returns(successful_override_transaction_response)
 
   #  assert response = @gateway.override_transaction(@options)
@@ -491,7 +504,7 @@ class UsaEpayAdvancedTest < Test::Unit::TestCase
   #  assert response.test?
 
   #  puts response.inspect
-  #end
+  # end
 
   # Transaction Status ================================================
 

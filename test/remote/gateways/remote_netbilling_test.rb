@@ -6,17 +6,17 @@ class RemoteNetbillingTest < Test::Unit::TestCase
 
     @credit_card = credit_card('4444111111111119')
 
-    @address = {  :address1 => '1600 Amphitheatre Parkway',
-                  :city => 'Mountain View',
-                  :state => 'CA',
-                  :country => 'US',
-                  :zip => '94043',
-                  :phone => '650-253-0001'
-                }
+    @address = {  address1: '1600 Amphitheatre Parkway',
+                  city: 'Mountain View',
+                  state: 'CA',
+                  country: 'US',
+                  zip: '94043',
+                  phone: '650-253-0001'}
 
     @options = {
-      :billing_address => @address,
-      :description => 'Internet purchase'
+      billing_address: @address,
+      description: 'Internet purchase',
+      order_id: 987654321
     }
 
     @amount = 100
@@ -88,9 +88,9 @@ class RemoteNetbillingTest < Test::Unit::TestCase
 
   def test_invalid_login
     gateway = NetbillingGateway.new(
-                :login => '',
-                :password => ''
-              )
+      login: '',
+      password: ''
+    )
     assert response = gateway.purchase(@amount, @credit_card, @options)
     assert_match(/missing/i, response.message)
     assert_failure response
@@ -123,5 +123,15 @@ class RemoteNetbillingTest < Test::Unit::TestCase
     assert void_response = @gateway.void(response.authorization)
     assert_failure void_response
     assert_match(/error/i, void_response.message)
+  end
+
+  def test_transcript_scrubbing
+    transcript = capture_transcript(@gateway) do
+      @gateway.purchase(@amount, @credit_card, @options)
+    end
+    clean_transcript = @gateway.scrub(transcript)
+
+    assert_scrubbed(@credit_card.number, clean_transcript)
+    assert_scrubbed(@credit_card.verification_value.to_s, clean_transcript)
   end
 end

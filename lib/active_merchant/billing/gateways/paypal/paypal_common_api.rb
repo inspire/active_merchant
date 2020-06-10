@@ -4,7 +4,7 @@ module ActiveMerchant #:nodoc:
     module PaypalCommonAPI
       include Empty
 
-      API_VERSION = '72'
+      API_VERSION = '124'
 
       URLS = {
         :test => { :certificate => 'https://api.sandbox.paypal.com/2.0/',
@@ -39,6 +39,20 @@ module ActiveMerchant #:nodoc:
       SUCCESS_CODES = [ 'Success', 'SuccessWithWarning' ]
 
       FRAUD_REVIEW_CODE = "11610"
+
+      STANDARD_ERROR_CODE_MAPPING = {
+        '15005' => :card_declined,
+        '10754' => :card_declined,
+        '10752' => :card_declined,
+        '10759' => :card_declined,
+        '10761' => :card_declined,
+        '15002' => :card_declined,
+        '11084' => :card_declined,
+        '15004' => :incorrect_cvc,
+        '10762' => :invalid_cvc,
+      }
+
+      STANDARD_ERROR_CODE_MAPPING.default = :processing_error
 
       def self.included(base)
         base.default_currency = 'USD'
@@ -255,7 +269,21 @@ module ActiveMerchant #:nodoc:
         commit 'ManagePendingTransactionStatus', build_manage_pending_transaction_status(transaction_id, action)
       end
 
+      def supports_scrubbing?
+        true
+      end
+
+      def scrub(transcript)
+        transcript.
+          gsub(%r((<n1:Password>).+(</n1:Password>)), '\1[FILTERED]\2').
+          gsub(%r((<n1:Username>).+(</n1:Username>)), '\1[FILTERED]\2').
+          gsub(%r((<n1:Signature>).+(</n1:Signature>)), '\1[FILTERED]\2').
+          gsub(%r((<n2:CreditCardNumber>).+(</n2:CreditCardNumber)), '\1[FILTERED]\2').
+          gsub(%r((<n2:CVV2>)\d+(</n2:CVV2)), '\1[FILTERED]\2')
+      end
+
       private
+
       def build_request_wrapper(action, options = {})
         xml = Builder::XmlMarkup.new :indent => 2
         xml.tag! action + 'Req', 'xmlns' => PAYPAL_NAMESPACE do
@@ -558,7 +586,7 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'n2:OrderTotal', localized_amount(money, currency_code), 'currencyID' => currency_code
 
           # All of the values must be included together and add up to the order total
-          if [:subtotal, :shipping, :handling, :tax].all?{ |o| options.has_key?(o) }
+          if [:subtotal, :shipping, :handling, :tax].all?{ |o| options[o].present? }
             xml.tag! 'n2:ItemTotal', localized_amount(options[:subtotal], currency_code), 'currencyID' => currency_code
             xml.tag! 'n2:ShippingTotal', localized_amount(options[:shipping], currency_code),'currencyID' => currency_code
             xml.tag! 'n2:HandlingTotal', localized_amount(options[:handling], currency_code),'currencyID' => currency_code
@@ -604,9 +632,9 @@ module ActiveMerchant #:nodoc:
 
       def add_express_only_payment_details(xml, options = {})
         add_optional_fields(xml,
-                            %w{n2:NoteText          n2:SoftDescriptor
-                               n2:TransactionId     n2:AllowedPaymentMethodType
-                               n2:PaymentRequestID  n2:PaymentAction},
+                            %w{n2:NoteText          n2:PaymentAction
+                               n2:TransactionId     n2:AllowedPaymentMethod
+                               n2:PaymentRequestID  n2:SoftDescriptor  },
                             options)
       end
 
@@ -637,9 +665,19 @@ module ActiveMerchant #:nodoc:
           :test => test?,
           :authorization => authorization_from(response),
           :fraud_review => fraud_review?(response),
+          :error_code => standardized_error_code(response),
           :avs_result => { :code => response[:avs_code] },
           :cvv_result => response[:cvv2_code]
         )
+      end
+
+      def standardized_error_code(response)
+        STANDARD_ERROR_CODE_MAPPING[error_codes(response).first]
+      end
+
+      def error_codes(response)
+        return [] unless response.has_key?(:error_codes)
+        response[:error_codes].split(',')
       end
 
       def fraud_review?(response)
@@ -668,7 +706,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def item_amount(amount, currency_code)
-        if amount.to_i < 0 && Gateway.non_fractional_currency?(currency_code)
+        if amount.to_i < 0 && non_fractional_currency?(currency_code)
           amount(amount).to_f.floor
         else
           localized_amount(amount, currency_code)

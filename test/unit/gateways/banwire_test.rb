@@ -5,32 +5,32 @@ class BanwireTest < Test::Unit::TestCase
 
   def setup
     @gateway = BanwireGateway.new(
-                 :login => 'desarrollo',
-                 :currency => 'MXN')
+      login: 'desarrollo',
+      currency: 'MXN')
 
     @credit_card = credit_card('5204164299999999',
-                               :month => 11,
-                               :year => 2012,
-                               :verification_value => '999')
+      month: 11,
+      year: 2012,
+      verification_value: '999')
     @amount = 100
 
     @options = {
-      :order_id => '1',
-      :email => 'test@email.com',
-      :billing_address => address,
-      :description => 'Store purchase'
+      order_id: '1',
+      email: 'test@email.com',
+      billing_address: address,
+      description: 'Store purchase'
     }
 
     @amex_credit_card = credit_card('375932134599999',
-                                    :month => 3,
-                                    :year => 2017,
-                                    :first_name => "Banwire",
-                                    :last_name => "Test Card")
+      month: 3,
+      year: 2017,
+      first_name: 'Banwire',
+      last_name: 'Test Card')
     @amex_options = {
-        :order_id => '2',
-        :email => 'test@email.com',
-        :billing_address => address(:address1 => 'Horacio', :zip => 11560),
-        :description  => 'Store purchase amex'
+      order_id: '2',
+      email: 'test@email.com',
+      billing_address: address(address1: 'Horacio', zip: 11560),
+      description: 'Store purchase amex'
     }
   end
 
@@ -61,7 +61,7 @@ class BanwireTest < Test::Unit::TestCase
     assert_match %r{Invalid response received from the Banwire API}, response.message
   end
 
-  #American Express requires address and zipcode
+  # American Express requires address and zipcode
   def test_successful_amex_purchase
     response = stub_comms do
       @gateway.purchase(@amount, @amex_credit_card, @amex_options)
@@ -75,7 +75,7 @@ class BanwireTest < Test::Unit::TestCase
     assert response.test?
   end
 
-  #American Express requires address and zipcode
+  # American Express requires address and zipcode
   def test_unsuccessful_amex_request
     @gateway.expects(:ssl_post).returns(failed_purchase_amex_response)
 
@@ -83,6 +83,10 @@ class BanwireTest < Test::Unit::TestCase
     assert_match %r{requeridos para pagos con AMEX}, response.message
     assert_failure response
     assert response.test?
+  end
+
+  def test_transcript_scrubbing
+    assert_equal scrubbed_transcript, @gateway.scrub(transcript)
   end
 
   private
@@ -115,5 +119,13 @@ class BanwireTest < Test::Unit::TestCase
     <<-RESPONSE
     {"user":"desarrollo"
     RESPONSE
+  end
+
+  def transcript
+    %(user=desarrollo&phone=%28555%29555-5555&mail=unspecified%40email.com&reference=d833147668945a09fc72168bfa53c53c&concept=&card_num=5204164299999999&card_name=Longbob+Longsen&card_type=mastercard&card_exp=09%2F16&card_ccv2=999)
+  end
+
+  def scrubbed_transcript
+    %(user=desarrollo&phone=%28555%29555-5555&mail=unspecified%40email.com&reference=d833147668945a09fc72168bfa53c53c&concept=&card_num=[FILTERED]&card_name=Longbob+Longsen&card_type=mastercard&card_exp=09%2F16&card_ccv2=[FILTERED])
   end
 end

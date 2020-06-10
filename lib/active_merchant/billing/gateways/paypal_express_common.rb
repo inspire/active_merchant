@@ -11,13 +11,13 @@ module ActiveMerchant
         end
         base.live_redirect_url = 'https://www.paypal.com/cgi-bin/webscr'
       end
-      
+
       def redirect_url
         test? ? test_redirect_url : live_redirect_url
       end
-      
+
       def redirect_url_for(token, options = {})
-        options = {:review => true, :mobile => false}.update(options)
+        options = {review: true, mobile: false}.update(options)
 
         cmd  = options[:mobile] ? '_express-checkout-mobile' : '_express-checkout'
         url  = "#{redirect_url}?cmd=#{cmd}&token=#{token}"

@@ -14,16 +14,16 @@ module ActiveMerchant #:nodoc:
       self.live_url = self.test_url = 'https://secure.netbilling.com:1402/gw/sas/direct3.1'
 
       TRANSACTIONS = {
-        :authorization => 'A',
-        :purchase      => 'S',
-        :refund        => 'R',
-        :credit        => 'C',
-        :capture       => 'D',
-        :void          => 'U',
-        :quasi         => 'Q'
+        authorization: 'A',
+        purchase:      'S',
+        refund:        'R',
+        credit:        'C',
+        capture:       'D',
+        void:          'U',
+        quasi:         'Q'
       }
 
-      SUCCESS_CODES = [ '1', 'T' ]
+      SUCCESS_CODES = ['1', 'T']
       SUCCESS_MESSAGE = 'The transaction was approved'
       FAILURE_MESSAGE = 'The transaction failed'
       TEST_LOGIN = '104901072025'
@@ -31,7 +31,6 @@ module ActiveMerchant #:nodoc:
       self.display_name = 'NETbilling'
       self.homepage_url = 'http://www.netbilling.com'
       self.supported_countries = ['US']
-      self.ssl_version = :TLSv1
       self.supported_cardtypes = [:visa, :master, :american_express, :discover, :jcb, :diners_club]
 
       def initialize(options = {})
@@ -46,6 +45,7 @@ module ActiveMerchant #:nodoc:
         add_payment_source(post, payment_source)
         add_address(post, payment_source, options)
         add_customer_data(post, options)
+        add_user_data(post, options)
 
         commit(:authorization, post)
       end
@@ -57,6 +57,7 @@ module ActiveMerchant #:nodoc:
         add_payment_source(post, payment_source)
         add_address(post, payment_source, options)
         add_customer_data(post, options)
+        add_user_data(post, options)
 
         commit(:purchase, post)
       end
@@ -81,6 +82,7 @@ module ActiveMerchant #:nodoc:
         add_credit_card(post, credit_card)
         add_address(post, credit_card, options)
         add_customer_data(post, options)
+        add_user_data(post, options)
 
         commit(:credit, post)
       end
@@ -103,6 +105,17 @@ module ActiveMerchant #:nodoc:
 
       def test?
         (@options[:login] == TEST_LOGIN || super)
+      end
+
+      def supports_scrubbing
+        true
+      end
+
+      def scrub(transcript)
+        transcript.
+          gsub(%r((Authorization: Basic )\w+), '\1[FILTERED]').
+          gsub(%r((&?card_number=)[^&]*), '\1[FILTERED]').
+          gsub(%r((&?card_cvv2=)[^&]*), '\1[FILTERED]')
       end
 
       private
@@ -130,17 +143,14 @@ module ActiveMerchant #:nodoc:
           post[:bill_state]      = billing_address[:state]
         end
 
-       if shipping_address = options[:shipping_address]
-         first_name, last_name = parse_first_and_last_name(shipping_address[:name])
-
-         post[:ship_name1]      = first_name
-         post[:ship_name2]      = last_name
-         post[:ship_street]     = shipping_address[:address1]
-         post[:ship_zip]        = shipping_address[:zip]
-         post[:ship_city]       = shipping_address[:city]
-         post[:ship_country]    = shipping_address[:country]
-         post[:ship_state]      = shipping_address[:state]
-       end
+        if shipping_address = options[:shipping_address]
+          post[:ship_name1], post[:ship_name2] = split_names(shipping_address[:name])
+          post[:ship_street]     = shipping_address[:address1]
+          post[:ship_zip]        = shipping_address[:zip]
+          post[:ship_city]       = shipping_address[:city]
+          post[:ship_country]    = shipping_address[:country]
+          post[:ship_state]      = shipping_address[:state]
+        end
       end
 
       def add_invoice(post, options)
@@ -153,6 +163,10 @@ module ActiveMerchant #:nodoc:
         else
           add_credit_card(params, source)
         end
+      end
+
+      def add_user_data(post, options)
+        post[:user_data] = "order_id:#{options[:order_id]}" if options[:order_id]
       end
 
       def add_transaction_id(post, transaction_id)
@@ -170,7 +184,7 @@ module ActiveMerchant #:nodoc:
       def parse(body)
         results = {}
         body.split(/&/).each do |pair|
-          key,val = pair.split(/\=/)
+          key, val = pair.split(/\=/)
           results[key.to_sym] = CGI.unescape(val)
         end
         results
@@ -180,14 +194,15 @@ module ActiveMerchant #:nodoc:
         response = parse(ssl_post(self.live_url, post_data(action, parameters)))
 
         Response.new(success?(response), message_from(response), response,
-          :test => test_response?(response),
-          :authorization => response[:trans_id],
-          :avs_result => { :code => response[:avs_code]},
-          :cvv_result => response[:cvv2_code]
+          test: test_response?(response),
+          authorization: response[:trans_id],
+          avs_result: { code: response[:avs_code]},
+          cvv_result: response[:cvv2_code]
         )
       rescue ActiveMerchant::ResponseError => e
-        raise unless(e.response.code =~ /^[67]\d\d$/)
-        return Response.new(false, e.response.message, {:status_code => e.response.code}, :test => test?)
+        raise unless e.response.code =~ /^[67]\d\d$/
+
+        return Response.new(false, e.response.message, {status_code: e.response.code}, test: test?)
       end
 
       def test_response?(response)
@@ -208,17 +223,8 @@ module ActiveMerchant #:nodoc:
         parameters[:pay_type] = 'C'
         parameters[:tran_type] = TRANSACTIONS[action]
 
-        parameters.reject{|k,v| v.blank?}.collect { |key, value| "#{key}=#{CGI.escape(value.to_s)}" }.join("&")
-      end
-
-      def parse_first_and_last_name(value)
-        name = value.to_s.split(' ')
-
-        last_name = name.pop || ''
-        first_name = name.join(' ')
-        [ first_name, last_name ]
+        parameters.reject { |k, v| v.blank? }.collect { |key, value| "#{key}=#{CGI.escape(value.to_s)}" }.join('&')
       end
     end
   end
 end
-

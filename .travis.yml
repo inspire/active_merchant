@@ -1,19 +1,25 @@
 language: ruby
-script: "bundle exec rake test:units"
-sudo: false
+cache: bundler
 
 rvm:
-- "2.2"
-- "2.1"
-- "2.0"
+- 2.5
+- 2.6
+- 2.7
 
 gemfile:
-- Gemfile.rails32
-- Gemfile.rails40
-- Gemfile.rails41
-- Gemfile.rails42
+- gemfiles/Gemfile.rails50
+- gemfiles/Gemfile.rails51
+- gemfiles/Gemfile.rails52
+- gemfiles/Gemfile.rails60
+- gemfiles/Gemfile.rails_master
+
+jobs:
+  include:
+      rvm: 2.5
+      gemfile: Gemfile
+      script: bundle exec rubocop --parallel
 
 notifications:
   email:
-  - payments-dev@shopify.com
-  - nathaniel@talbott.ws
+    on_success: never
+    on_failure: always

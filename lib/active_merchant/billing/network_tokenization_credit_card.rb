@@ -15,9 +15,24 @@ module ActiveMerchant #:nodoc:
       self.require_name = false
 
       attr_accessor :payment_cryptogram, :eci, :transaction_id
+      attr_writer :source
+
+      SOURCES = %i(apple_pay android_pay google_pay network_token)
+
+      def source
+        if defined?(@source) && SOURCES.include?(@source)
+          @source
+        else
+          :apple_pay
+        end
+      end
+
+      def credit_card?
+        true
+      end
 
       def type
-        "network_tokenization"
+        'network_tokenization'
       end
     end
   end

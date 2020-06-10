@@ -12,7 +12,6 @@ class BaseTest < Test::Unit::TestCase
   def test_should_return_a_new_gateway_specified_by_symbol_name
     assert_equal BogusGateway,         Base.gateway(:bogus)
     assert_equal MonerisGateway,       Base.gateway(:moneris)
-    assert_equal MonerisUsGateway,     Base.gateway(:moneris_us)
     assert_equal AuthorizeNetGateway,  Base.gateway(:authorize_net)
     assert_equal UsaEpayGateway,       Base.gateway(:usa_epay)
     assert_equal LinkpointGateway,     Base.gateway(:linkpoint)
@@ -49,23 +48,20 @@ class BaseTest < Test::Unit::TestCase
   def test_should_set_modes
     Base.mode = :test
     assert_equal :test, Base.mode
-    assert_equal :test, Base.gateway_mode
 
     Base.mode = :production
     assert_equal :production, Base.mode
-    assert_equal :production, Base.gateway_mode
 
-    Base.mode             = :development
-    Base.gateway_mode     = :test
+    assert_deprecation_warning(Base::GATEWAY_MODE_DEPRECATION_MESSAGE) { Base.gateway_mode = :development }
+    assert_deprecation_warning(Base::GATEWAY_MODE_DEPRECATION_MESSAGE) { assert_equal :development, Base.gateway_mode }
     assert_equal :development, Base.mode
-    assert_equal :test,        Base.gateway_mode
   end
 
   def test_should_identify_if_test_mode
-    Base.gateway_mode = :test
+    Base.mode = :test
     assert Base.test?
 
-    Base.gateway_mode = :production
+    Base.mode = :production
     assert_false Base.test?
   end
 end
