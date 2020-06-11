@@ -45,7 +45,7 @@ module ActiveMerchant #:nodoc:
         'msa_voyager'        => ->(num) { num =~ /^70888[5-9]\d{8}\d{5}$/ }
       }
 
-      VALIDATE_CARD_COMPANIES = [[
+      VALIDATES_LUHN = [
         'visa',
         'master',
         'discover',
@@ -58,7 +58,7 @@ module ActiveMerchant #:nodoc:
         'maestro',
         'forbrugsforeningen',
         'laser',
-      ]]
+      ]
 
       # http://www.barclaycard. ->(num) { o.uk/business/files/bin_rules.pdf
       ELECTRON_RANGES = [
@@ -247,10 +247,6 @@ module ActiveMerchant #:nodoc:
           CARD_COMPANY_DETECTORS.keys
         end
 
-        def validate_card_companies
-          VALIDATE_CARD_COMPANIES
-        end
-
         # Returns a string containing the brand of card from the list of known information below.
         def brand?(number)
           return 'bogus' if valid_test_mode_card_number?(number)
@@ -326,7 +322,9 @@ module ActiveMerchant #:nodoc:
           when 'naranja'
             valid_naranja_algo?(numbers)
           else
-            valid_luhn?(numbers)
+            if VALIDATES_LUHN.include?(brand)
+              valid_luhn?(numbers)
+            end
           end
         end
 

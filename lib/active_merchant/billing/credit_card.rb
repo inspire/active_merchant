@@ -354,12 +354,8 @@ module ActiveMerchant #:nodoc:
 
         if empty?(number)
           errors << [:number, 'is required']
-        else
-          if CreditCard.validate_card_companies.include?(CreditCard.brand?(number))
-            unless CreditCard.valid_number?(number)
-              errors << [:number, 'is not a valid credit card number']
-            end
-          end
+        elsif !CreditCard.valid_number?(number)
+          errors << [:number, 'is not a valid credit card number']
         end
 
         if errors.empty?
