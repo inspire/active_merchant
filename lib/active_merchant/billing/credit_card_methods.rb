@@ -324,6 +324,8 @@ module ActiveMerchant #:nodoc:
           else
             if VALIDATES_LUHN.include?(brand)
               valid_luhn?(numbers)
+            else
+              true
             end
           end
         end
