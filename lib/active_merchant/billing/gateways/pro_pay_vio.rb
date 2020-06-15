@@ -213,6 +213,7 @@ module ActiveMerchant #:nodoc:
       def scrub(transcript)
         transcript.
           gsub(%r((<certStr>).+(</certStr>)), '\1[FILTERED]\2').
+          gsub(%r((<termId>).+(</termId>)), '\1[FILTERED]\2').
           gsub(%r((<ccNum>).+(</ccNum>)), '\1[FILTERED]\2').
           gsub(%r((<CVV2>).+(</CVV2>)), '\1[FILTERED]\2')
       end
@@ -303,6 +304,7 @@ module ActiveMerchant #:nodoc:
           xml.XMLRequest do
 
             xml.certStr (test? ? "29dc82efcc3456db610c8744d2af16" : "478bf48d3474abbbc9ebb6d176f3ae")
+            xml.termId (test? ? "4d2af16" : "176f3ae")
             xml.class_ "partner"
             xml.XMLTrans do
               yield(xml)
