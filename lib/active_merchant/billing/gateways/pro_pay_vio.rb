@@ -304,7 +304,7 @@ module ActiveMerchant #:nodoc:
           xml.XMLRequest do
 
             xml.certStr (test? ? "29dc82efcc3456db610c8744d2af16" : "478bf48d3474abbbc9ebb6d176f3ae")
-            xml.termId (test? ? "4d2af16" : "d176f3ae")
+            xml.termid (test? ? "4d2af16" : "d176f3ae")
             xml.class_ "partner"
             xml.XMLTrans do
               yield(xml)
