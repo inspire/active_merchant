@@ -213,7 +213,7 @@ module ActiveMerchant #:nodoc:
       def scrub(transcript)
         transcript.
           gsub(%r((<certStr>).+(</certStr>)), '\1[FILTERED]\2').
-          gsub(%r((<termId>).+(</termId>)), '\1[FILTERED]\2').
+          gsub(%r((<termid>).+(</termid>)), '\1[FILTERED]\2').
           gsub(%r((<ccNum>).+(</ccNum>)), '\1[FILTERED]\2').
           gsub(%r((<CVV2>).+(</CVV2>)), '\1[FILTERED]\2')
       end
