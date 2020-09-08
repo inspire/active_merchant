@@ -186,7 +186,7 @@ module ActiveMerchant #:nodoc:
           xml.ReversalType options[:reversal_type] if options[:reversal_type]
           xml.TransactionID options[:trans_id] if options[:trans_id]
           xml.TransactionAmount amount(money.to_i) if money
-          xml.MarketCode 'Default' if money
+          xml.MarketCode '3' if money
           xml.ReferenceNumber options[:order_id] || SecureRandom.hex(20)
         end
       end
@@ -195,12 +195,14 @@ module ActiveMerchant #:nodoc:
         xml.terminal do
           xml.TerminalID options[:terminal_id] || '01'
           xml.CardPresentCode options[:card_present_code] || 'UseDefault'
-          xml.CardholderPresentCode 'UseDefault'
-          xml.CardInputCode 'UseDefault'
-          xml.CVVPresenceCode 'UseDefault'
-          xml.TerminalCapabilityCode 'UseDefault'
-          xml.TerminalEnvironmentCode 'UseDefault'
-          xml.MotoECICode 'NonAuthenticatedSecureECommerceTransaction'
+          xml.CardholderPresentCode '7'
+          xml.CardInputCode '4'
+          xml.CardPresentCode '3'
+          xml.CVVPresenceCode '0'
+          xml.TerminalCapabilityCode '5'
+          xml.TerminalEnvironmentCode '6'
+          xml.MotoECICode '7'
+          xml.TerminalType '2'
         end
       end
 
