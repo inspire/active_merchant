@@ -187,7 +187,8 @@ module ActiveMerchant #:nodoc:
           xml.TransactionID options[:trans_id] if options[:trans_id]
           xml.TransactionAmount amount(money.to_i) if money
           xml.MarketCode '3' if money
-          xml.ReferenceNumber options[:order_id] || SecureRandom.hex(20)
+          xml.ReferenceNumber options[:order_id] || SecureRandom.hex(16)
+          xml.TicketNumber options[:order_id] || SecureRandom.hex(6)
         end
       end
 
