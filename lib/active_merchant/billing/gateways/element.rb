@@ -181,30 +181,30 @@ module ActiveMerchant #:nodoc:
         end
       end
 
-      def add_transaction(xml, money, options = {})
+      def add_transaction(xml, money, options = {}) 
         xml.transaction do
           xml.ReversalType options[:reversal_type] if options[:reversal_type]
           xml.TransactionID options[:trans_id] if options[:trans_id]
           xml.TransactionAmount amount(money.to_i) if money
-          xml.MarketCode '3' if money
+          xml.MarketCode 'ECommerce' if money
           xml.ReferenceNumber options[:order_id] || SecureRandom.hex(16)
           xml.TicketNumber options[:order_id] || SecureRandom.hex(6)
-        end
-      end
+        end 
+      end 
 
       def add_terminal(xml, options)
         xml.terminal do
           xml.TerminalID options[:terminal_id] || '01'
-          xml.CardPresentCode options[:card_present_code] || '3'
-          xml.CardholderPresentCode '7'
-          xml.CardInputCode '4'
-          xml.CVVPresenceCode '0'
-          xml.TerminalCapabilityCode '5'
-          xml.TerminalEnvironmentCode '6'
-          xml.MotoECICode '7'
-          xml.TerminalType '2'
-        end
-      end
+          xml.CardPresentCode options[:card_present_code] || 'NotPresent'
+          xml.CardholderPresentCode 'ECommerce'
+          xml.CardInputCode 'ManualKeyed'
+          xml.CVVPresenceCode 'UseDefault'
+          xml.TerminalCapabilityCode 'KeyEntered'
+          xml.TerminalEnvironmentCode 'ECommerce'
+          xml.MotoECICode 'NonAuthenticatedSecureECommerceTransaction'
+          xml.TerminalType 'ECommerce'
+        end 
+      end 
 
       def add_credit_card(xml, payment)
         xml.card do
