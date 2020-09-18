@@ -195,14 +195,14 @@ module ActiveMerchant #:nodoc:
       def add_terminal(xml, options)
         xml.terminal do
           xml.TerminalID options[:terminal_id] || '01'
-          xml.CardPresentCode options[:card_present_code] || '3'
-          xml.CardholderPresentCode options[:card_holder_present_code] || '7'
-          xml.CardInputCode options[:card_input_code] || '4'
-          xml.CVVPresenceCode options[:cvv_presence_code] || '0'
-          xml.TerminalCapabilityCode options[:terminal_capability_code] || '5'
-          xml.TerminalEnvironmentCode  options[:terminal_environment_code] ||'6'
-          xml.MotoECICode options[:moto_eci_code] || '7'
-          xml.TerminalType options[:terminal_type] || '2'
+          xml.CardPresentCode options[:card_present_code] || 'NotPresent'
+          xml.CardholderPresentCode options[:card_holder_present_code] || 'ECommerce'
+          xml.CardInputCode options[:card_input_code] || 'ManualKeyed'
+          xml.CVVPresenceCode options[:cvv_presence_code] || 'UseDefault'
+          xml.TerminalCapabilityCode options[:terminal_capability_code] || 'KeyEntered'
+          xml.TerminalEnvironmentCode  options[:terminal_environment_code] ||'ECommerce'
+          xml.MotoECICode options[:moto_eci_code] || 'NonAuthenticatedSecureECommerceTransaction'
+          xml.TerminalType options[:terminal_type] || 'ECommerce'
         end 
       end 
 
