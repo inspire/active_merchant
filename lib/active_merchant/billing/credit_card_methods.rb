@@ -45,6 +45,21 @@ module ActiveMerchant #:nodoc:
         'msa_voyager'        => ->(num) { num =~ /^70888[5-9]\d{8}\d{5}$/ }
       }
 
+      VALIDATE_CARD_COMPANIES = [
+        'visa',
+        'master',
+        'discover',
+        'american_express',
+        'diners_club',
+        'jcb',
+        'switch',
+        'solo',
+        'dankort',
+        'maestro',
+        'forbrugsforeningen',
+        'laser',
+      ]
+
       VALIDATES_LUHN = [
         'visa',
         'master',
@@ -245,6 +260,10 @@ module ActiveMerchant #:nodoc:
 
         def card_companies
           CARD_COMPANY_DETECTORS.keys
+        end
+
+        def validate_card_companies
+          VALIDATE_CARD_COMPANIES
         end
 
         # Returns a string containing the brand of card from the list of known information below.
